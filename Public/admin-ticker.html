@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Zyvra Admin — Ticker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--accent:#00ffff}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Orbitron',sans-serif;background:radial-gradient(circle at center,#050505,#000);color:#fff}
+    .wrap{max-width:900px;margin:24px auto;padding:16px}
+    .card{background:rgba(255,255,255,.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px}
+    h1{margin:0 0 8px;color:var(--accent)}
+    .muted{color:#8aa}
+    label{display:block;margin-top:14px;margin-bottom:6px;font-weight:700}
+    input[type=text],input[type=number],textarea{
+      width:100%;padding:12px;border-radius:10px;border:1px solid #1f1f1f;background:#0b0b0b;color:#eaeaea;outline:none
+    }
+    textarea{min-height:90px;resize:vertical}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .row>div{flex:1 1 260px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    button{padding:10px 18px;border:2px solid var(--accent);background:transparent;color:var(--accent);border-radius:28px;cursor:pointer}
+    button:hover{background:var(--accent);color:#000}
+    .danger{border-color:#ff6a6a;color:#ff6a6a}
+    .danger:hover{background:#ff6a6a;color:#000}
+    .ok{color:#7dffb2}
+    .err{color:#ff8a8a}
+    .preview{margin-top:16px;padding:10px;border:1px dashed #2a2a2a;border-radius:10px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    a{color:var(--accent);text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h1>Zyvra — Ticker Admin</h1>
+      <a href="/" title="Home">← Back to site</a>
+    </div>
+    <div class="card">
+      <p class="muted">Admin Token لازمی ہے۔ یہ وہی ہے جو آپ نے <code>.env</code> میں <strong>ADMIN_TOKEN</strong> رکھا تھا۔</p>
+
+      <label for="token">Admin Token</label>
+      <input id="token" type="text" placeholder="Paste ADMIN_TOKEN"/>
+      <small class="muted">یہ براؤزر میں محفوظ رہے گا۔</small>
+
+      <label for="text">Headline Text</label>
+      <textarea id="text" placeholder="مثال: Breaking: Zyvra mobile launch"></textarea>
+
+      <div class="row">
+        <div>
+          <label for="url">Link URL (optional)</label>
+          <input id="url" type="text" placeholder="/ یا https://example.com/article"/>
+        </div>
+        <div>
+          <label for="speed">Speed (seconds, 6–120)</label>
+          <input id="speed" type="number" min="6" max="120" value="20"/>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <label style="width:100%">
+            <input id="active" type="checkbox" checked style="transform:scale(1.2);margin-right:8px;vertical-align:middle"/> Active
+          </label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="saveBtn">Save Ticker</button>
+        <button id="offBtn" class="danger">Deactivate</button>
+        <button id="loadBtn" title="Fetch current ticker">Refresh Current</button>
+      </div>
+
+      <div id="status" style="margin-top:10px"></div>
+
+      <div class="preview">
+        <strong>Preview:</strong>
+        <div id="pv" class="muted" style="margin-top:6px">—</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+    const tokenEl = el('token'), textEl = el('text'), urlEl = el('url'),
+          speedEl = el('speed'), activeEl = el('active'),
+          statusEl = el('status'), pvEl = el('pv');
+
+    // Persist token locally
+    tokenEl.value = localStorage.getItem('zyvra_admin_token') || '';
+    tokenEl.addEventListener('input', () => localStorage.setItem('zyvra_admin_token', tokenEl.value.trim()));
+
+    function setStatus(msg, ok=true){
+      statusEl.innerHTML = ok ? `<span class="ok">✔ ${msg}</span>` : `<span class="err">✖ ${msg}</span>`;
+    }
+    function preview(){
+      const txt = (textEl.value||'').trim();
+      const url = (urlEl.value||'').trim();
+      const spd = parseInt(speedEl.value||'20',10);
+      pvEl.textContent = txt ? `${txt}  •  ${txt}  •  ${txt}  (link: ${url || 'none'}, speed: ${isNaN(spd)?'—':spd}s, active: ${activeEl.checked})` : '—';
+    }
+    ['input','change'].forEach(ev=>{
+      textEl.addEventListener(ev, preview);
+      urlEl.addEventListener(ev, preview);
+      speedEl.addEventListener(ev, preview);
+      activeEl.addEventListener(ev, preview);
+    });
+
+    async function loadCurrent(){
+      try{
+        const r = await fetch('/api/ticker');
+        const t = await r.json();
+        textEl.value  = t.text || '';
+        urlEl.value   = t.url  || '';
+        speedEl.value = t.speedSec || 20;
+        activeEl.checked = !!t.active;
+        preview();
+        setStatus('Loaded current ticker', true);
+      }catch{
+        setStatus('Failed to load current ticker', false);
+      }
+    }
+
+    async function save(activeOverride=null){
+      const adminToken = tokenEl.value.trim();
+      if(!adminToken){ setStatus('Admin Token missing', false); return; }
+      const payload = {
+        text: (textEl.value||'').trim(),
+        url: (urlEl.value||'').trim(),
+        speedSec: Math.max(6, Math.min(120, parseInt(speedEl.value||'20',10) || 20)),
+        active: (activeOverride===null) ? !!activeEl.checked : !!activeOverride
+      };
+      try{
+        const r = await fetch('/api/admin/ticker', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-token': adminToken
+          },
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json().catch(()=> ({}));
+        if(!r.ok){ throw new Error(j?.error || 'save_failed'); }
+        setStatus('Saved ✓  (go to Home and refresh to see)', true);
+      }catch(e){
+        setStatus('Save failed: ' + (e.message || e), false);
+      }
+    }
+
+    el('saveBtn').addEventListener('click', ()=> save(null));
+    el('offBtn').addEventListener('click', ()=> save(false));
+    el('loadBtn').addEventListener('click', loadCurrent);
+
+    // boot
+    preview();
+    loadCurrent();
+  </script>
+</body>
+</html>

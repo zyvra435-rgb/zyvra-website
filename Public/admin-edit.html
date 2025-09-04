@@ -1,0 +1,72 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8"><title>Zyvra — Edit Article</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:system-ui,Arial,sans-serif;max-width:780px;margin:24px auto;padding:0 12px;color:#eee;background:#111}
+label{display:block;margin:12px 0 6px}
+input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#1b1b1b;color:#eee}
+button{padding:10px 16px;border:2px solid #0ff;background:transparent;color:#0ff;border-radius:24px;cursor:pointer}
+small{color:#888}
+</style></head><body>
+<h2>Edit Article</h2>
+<p><a href="/admin-manage.html" style="color:#0ff">← Back to Manage</a></p>
+<p id="gate">Checking admin…</p>
+
+<div id="form" style="display:none">
+  <label>Title</label><input id="title">
+  <label>Description</label><textarea id="desc" rows="3"></textarea>
+  <label>Content</label><textarea id="content" rows="10"></textarea>
+  <label>Article URL (optional)</label><input id="url">
+  <label>Image URL</label><input id="img" placeholder="/images/photo.jpg or https://...">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div><label>Source</label><input id="src" value="Zyvra"></div>
+    <div>
+      <label>Category</label>
+      <select id="cat">
+        <option value="world">world</option>
+        <option value="technology">technology</option>
+        <option value="sports">sports</option>
+        <option value="entertainment">entertainment</option>
+      </select>
+    </div>
+  </div>
+  <label>Published At (ISO)</label><input id="pub">
+  <label>Author (optional)</label><input id="author">
+  <button id="save">Save changes</button>
+  <p id="msg"></p>
+</div>
+
+<script>
+const q = new URLSearchParams(location.search);
+const id = q.get('id');
+
+async function gate(){
+  const r = await fetch('/api/auth/me'); const j = await r.json();
+  if(!(r.ok && j.user?.role==='admin')){ document.getElementById('gate').innerHTML='Admin login required. <a href="/login.html" style="color:#0ff">Login</a>'; return; }
+  document.getElementById('gate').textContent=''; document.getElementById('form').style.display='block';
+  load();
+}
+async function load(){
+  const r = await fetch(`/api/admin/news/${encodeURIComponent(id)}`);
+  if(!r.ok){ document.getElementById('msg').textContent='Not found'; return; }
+  const { item } = await r.json();
+  set('title', item.title||''); set('desc', item.description||''); set('content', item.content||'');
+  set('url', item.url||''); set('img', item.imageUrl||''); set('src', item.source||'Zyvra');
+  set('cat', item.category||'world'); set('pub', item.publishedAt||''); set('author', item.author||'');
+}
+save.onclick = async ()=>{
+  msg.textContent='...';
+  const body = {
+    title: v('title'), description: v('desc'), content: v('content'),
+    url: v('url'), imageUrl: v('img'), source: v('src')||'Zyvra',
+    category: v('cat'), publishedAt: v('pub'), author: v('author')
+  };
+  const r = await fetch(`/api/admin/news/${encodeURIComponent(id)}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const j = await r.json();
+  if(r.ok){ msg.textContent='Updated ✔'; } else { msg.textContent=j.error||'error'; }
+};
+function v(id){ return document.getElementById(id).value.trim(); }
+function set(id,val){ document.getElementById(id).value = val; }
+gate();
+</script>
+</body></html>

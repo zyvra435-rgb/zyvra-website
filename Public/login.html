@@ -1,0 +1,27 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Zyvra — Login</title><link rel="stylesheet" href="style.css">
+<style>
+body{font-family:system-ui,Arial,sans-serif;color:#eee;background:#111}
+.box{max-width:420px;margin:60px auto;background:#1a1a1a;border:1px solid #333;padding:20px;border-radius:12px}
+input,button{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0b0b0b;color:#eee}
+button{border:2px solid #0ff;background:transparent;margin-top:10px;cursor:pointer}
+.msg{margin-top:10px}
+</style></head><body>
+<div class="box">
+<h2>Login</h2>
+<label>Email</label><input id="e" type="email">
+<label>Password</label><input id="p" type="password">
+<button id="b">Login</button>
+<p class="msg" id="m"></p>
+<p>New here? <a href="/signup.html" style="color:#0ff">Create account</a></p>
+</div>
+<script>
+b.onclick = async ()=>{
+  m.textContent='...';
+  const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e.value.trim(),password:p.value})});
+  const j = await r.json();
+  if(r.ok){ location.href='/' } else { m.textContent=j.error||'error' }
+};
+</script>
+</body></html>

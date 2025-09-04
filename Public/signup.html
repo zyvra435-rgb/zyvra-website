@@ -1,0 +1,30 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Zyvra — Signup</title><link rel="stylesheet" href="style.css">
+<style>
+body{font-family:system-ui,Arial,sans-serif;color:#eee;background:#111}
+.box{max-width:420px;margin:60px auto;background:#1a1a1a;border:1px solid #333;padding:20px;border-radius:12px}
+input,button{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0b0b0b;color:#eee}
+button{border:2px solid #0ff;background:transparent;margin-top:10px;cursor:pointer}
+.msg{margin-top:10px}
+</style></head><body>
+<div class="box">
+<h2>Create account</h2>
+<label>Name</label><input id="n">
+<label>Email</label><input id="e" type="email">
+<label>Password (min 6)</label><input id="p" type="password">
+<label>Admin key (optional)</label><input id="k" placeholder="Only if you should be admin">
+<button id="b">Signup</button>
+<p class="msg" id="m"></p>
+<p>Have an account? <a href="/login.html" style="color:#0ff">Login</a></p>
+</div>
+<script>
+b.onclick = async ()=>{
+  m.textContent='...';
+  const body={name:n.value.trim(),email:e.value.trim(),password:p.value,adminKey:k.value.trim()};
+  const r = await fetch('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j = await r.json();
+  if(r.ok){ location.href='/' } else { m.textContent=j.error||'error' }
+};
+</script>
+</body></html>

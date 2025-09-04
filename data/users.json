@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "id": "u_965a3986",
+      "name": "Sameer Ahmad",
+      "email": "sameerahmadislive@gmail.com",
+      "passHash": "$2b$10$gfp4Yem1sSIRw7Jm0BH7oe7arjObD/Xbl90ptkKkvEplh/G8pTrKK",
+      "role": "admin",
+      "createdAt": "2025-09-03T07:50:24.644Z"
+    }
+  ]
+}

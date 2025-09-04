@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"><title>Zyvra Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body{font-family:system-ui,Arial,sans-serif;max-width:760px;margin:24px auto;padding:0 12px;color:#eee;background:#111}
+    label{display:block;margin:12px 0 6px}
+    input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#1b1b1b;color:#eee}
+    button{padding:10px 16px;border:2px solid #0ff;background:transparent;color:#0ff;border-radius:24px;cursor:pointer}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .ok{color:#4cff4c}.err{color:#ff6b6b}
+  </style>
+</head>
+<body>
+  <h2>Zyvra Admin — Add / Update</h2>
+  <p id="who"></p>
+  <div id="gate"></div>
+
+  <div id="form" style="display:none">
+    <label>Title</label><input id="title">
+    <label>Description</label><textarea id="desc" rows="3"></textarea>
+    <label>Content</label><textarea id="content" rows="10"></textarea>
+    <label>Article URL (optional)</label><input id="url">
+    <label>Image URL</label><input id="img" placeholder="/images/photo.jpg or https://...">
+    <div class="row">
+      <div><label>Source</label><input id="src" value="Zyvra"></div>
+      <div>
+        <label>Category</label>
+        <select id="cat">
+          <option value="world">world</option>
+          <option value="technology">technology</option>
+          <option value="sports">sports</option>
+          <option value="entertainment">entertainment</option>
+        </select>
+      </div>
+    </div>
+    <label>Published At (ISO, optional)</label><input id="pub" placeholder="2025-09-03T10:00:00Z">
+    <button id="save">Save</button>
+    <p id="msg"></p>
+    <p><button id="logout" type="button">Logout</button></p>
+  </div>
+
+<script>
+async function me(){
+  const r = await fetch('/api/auth/me'); const j = await r.json();
+  if(r.ok && j.user?.role==='admin'){
+    who.textContent = `Logged in as ${j.user.name} (${j.user.role})`;
+    form.style.display='block'; gate.innerHTML='';
+  }else{
+    who.textContent = '';
+    form.style.display='none';
+    gate.innerHTML = 'Admin login required. <a href="/login.html" style="color:#0ff">Login</a> or <a href="/signup.html" style="color:#0ff">Signup</a>';
+  }
+}
+me();
+
+save.onclick = async ()=>{
+  msg.textContent='...';
+  const payload = {
+    title: v('title'), description: v('desc'), content: v('content'),
+    url: v('url'), imageUrl: v('img'), source: v('src')||'Zyvra',
+    category: v('cat'), publishedAt: v('pub')
+  };
+  if(!payload.title){ msg.textContent='Title required'; msg.className='err'; return; }
+  const r = await fetch('/api/admin/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const j = await r.json();
+  if(r.ok){ msg.textContent='Saved ✔'; msg.className='ok'; } else { msg.textContent=j.error||'error'; msg.className='err'; }
+};
+logout.onclick = async ()=>{ await fetch('/api/auth/logout',{method:'POST'}); location.reload(); };
+function v(id){ return document.getElementById(id).value.trim(); }
+</script>
+</body>
+</html>

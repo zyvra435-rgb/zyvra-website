@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Zyvra — Article</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="style.css" rel="stylesheet">
+  <style>
+    .article { max-width: 860px; margin: 32px auto; padding: 0 16px; }
+    .article h1 { color:#0ff; margin-bottom:8px }
+    .meta { color:#8aa; font-size:.9rem; margin-bottom:16px }
+    .article img.hero { width:100%; border-radius:12px; margin:12px 0 }
+    .content { color:#ddd; line-height:1.7; white-space:pre-wrap }
+  </style>
+</head>
+<body>
+  <header class="glass" style="padding:12px 20px">
+    <a href="/" style="color:#0ff;text-decoration:none;font-weight:bold">← Zyvra Home</a>
+  </header>
+
+  <main class="article">
+    <h1 id="title">Loading…</h1>
+    <div class="meta" id="meta"></div>
+    <img id="hero" class="hero" alt="" style="display:none">
+    <div class="content" id="content">Please wait…</div>
+    <p id="ext" style="margin-top:16px"></p>
+  </main>
+
+  <script src="article.js?v=1"></script>
+</body>
+</html>

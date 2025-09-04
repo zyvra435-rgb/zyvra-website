@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cricket | Zyvra</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    .row{display:grid;grid-template-columns:1fr;gap:16px}
+    .card{background:#111;border-radius:14px;padding:16px}
+    .title{color:#0ff;font-weight:700;margin-bottom:6px}
+    .empty{color:#8aa}
+  </style>
+</head>
+<body>
+<header class="glass" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px">
+  <div class="logo" style="display:flex;align-items:center">
+    <a href="/" style="display:flex;align-items:center;text-decoration:none;color:#fff">
+      <img src="/logo.png" alt="Zyvra" style="width:36px;margin-right:10px"><h1 style="font-size:1.2rem">Zyvra</h1>
+    </a>
+  </div>
+  <nav>
+    <ul style="display:flex;list-style:none;gap:14px">
+      <li><a href="/" style="color:#fff;text-decoration:none">Home</a></li>
+    </ul>
+  </nav>
+</header>
+
+<section class="wrap">
+  <h2 class="title">Cricket</h2>
+  <div class="row">
+    <div class="card">
+      <h3 class="title">Live Now</h3>
+      <p id="liveBox" class="empty">No live match right now</p>
+    </div>
+    <div class="card">
+      <h3 class="title">Results (Today)</h3>
+      <p id="resBox" class="empty">No finished match today/yesterday</p>
+    </div>
+    <div class="card">
+      <h3 class="title">Upcoming (Today)</h3>
+      <p id="upBox" class="empty">No upcoming match today/tomorrow</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(async function(){
+  try{
+    // Server returns empty arrays for now. If future me API enable kare, ye auto-fill ho jayega.
+    const r = await fetch('/api/cricket/feed');
+    const data = await r.json();
+    const render = (arr, el) => {
+      if (!Array.isArray(arr) || !arr.length) return; // keep "No match"
+      el.innerHTML = arr.map(m => `
+        <div style="margin:10px 0;padding:10px;border:1px solid #222;border-radius:10px">
+          <div style="color:#0ff;font-weight:600">${m.name||''}</div>
+          <div style="color:#8aa;font-size:.9rem">${m.status||''}</div>
+        </div>`).join('');
+    };
+    render(data.live,  document.getElementById('liveBox'));
+    render(data.results, document.getElementById('resBox'));
+    render(data.upcoming, document.getElementById('upBox'));
+  }catch(e){ /* ignore; placeholders stay */ }
+})();
+</script>
+</body>
+</html>

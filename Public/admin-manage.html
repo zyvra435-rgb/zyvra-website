@@ -1,0 +1,51 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8"><title>Zyvra — Manage Articles</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:system-ui,Arial,sans-serif;max-width:1000px;margin:24px auto;padding:0 12px;color:#eee;background:#111}
+h2{margin:0 0 12px}
+table{width:100%;border-collapse:collapse} th,td{border:1px solid #333;padding:8px} th{background:#1b1b1b}
+button{padding:6px 10px;border:2px solid #0ff;background:transparent;color:#0ff;border-radius:18px;cursor:pointer}
+a.btn{padding:6px 10px;border:2px solid #0ff;color:#0ff;border-radius:18px;text-decoration:none}
+small{color:#888}
+</style></head><body>
+<h2>Zyvra — Manage</h2>
+<p id="gate">Checking admin…</p>
+
+<table id="t" style="display:none"><thead><tr>
+  <th>Title</th><th>Category</th><th>Date</th><th>Actions</th>
+</tr></thead><tbody></tbody></table>
+
+<script>
+const tb=document.querySelector('#t tbody');
+async function me(){
+  const r = await fetch('/api/auth/me'); const j = await r.json();
+  if(r.ok && j.user?.role==='admin'){ document.getElementById('gate').textContent=''; document.getElementById('t').style.display='table'; load(); }
+  else { document.getElementById('gate').innerHTML='Admin login required. <a href="/login.html" style="color:#0ff">Login</a>'; }
+}
+async function load(){
+  const r=await fetch('/api/news?category=latest'); const j=await r.json();
+  tb.innerHTML=(j.items||[]).map(row).join('');
+}
+function row(a){
+  const when=a.publishedAt? new Date(a.publishedAt).toLocaleString(): '';
+  return `<tr>
+    <td>${esc(a.title||'Untitled')}</td>
+    <td>${esc(a.category||'')}</td>
+    <td>${when}</td>
+    <td>
+      <a class="btn" href="/admin-edit.html?id=${encodeURIComponent(a.id)}">Edit</a>
+      <button onclick="delItem('${esc(a.id)}')">Delete</button>
+      <a class="btn" href="/a/${encodeURIComponent(a.id)}" target="_blank">View</a>
+    </td>
+  </tr>`;
+}
+function esc(s=''){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]))}
+async function delItem(id){
+  if(!confirm('Delete this article?')) return;
+  const r = await fetch('/api/admin/news',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  if(r.ok){ load(); } else { const j=await r.json(); alert('Error: '+(j.error||r.status)); }
+}
+me();
+</script>
+</body></html>

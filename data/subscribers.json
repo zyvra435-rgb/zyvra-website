@@ -1,0 +1,13 @@
+{
+  "subs": [
+    {
+      "endpoint": "https://fcm.googleapis.com/fcm/send/dkgjpXego_s:APA91bFK1DR7RCMwFMXzvDN5QStnhXUrUbLhflSxKAPyTvxHnrzEovw0_l2HybKEJBUNzjOGGxDnKAWwBVB1_Jl2xu6fJUuUehkHix5H3bXbc-cEvpgKYBr2--2KUS7CH06Z2rXgs0xi",
+      "expirationTime": null,
+      "keys": {
+        "p256dh": "BPJqe11Xt6Dvv745ukGof8G3SDsZQ50wwaSOEagpqdHfXAww62eovEMwYJzRjl0iu0-F4-JvI34BOn2NbyoOkuQ",
+        "auth": "IiHdOstvELLGZ2k2s8v9ZQ"
+      },
+      "createdAt": "2025-09-03T08:18:16.789Z"
+    }
+  ]
+}
