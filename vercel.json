@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": ["data/**", "Public/**"]
+    }
+  },
   "builds": [
     { "src": "api/index.js", "use": "@vercel/node" },
     { "src": "Public/**", "use": "@vercel/static" }

@@ -8,15 +8,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header class="glass">
-    <div class="logo">
-      <a class="brand-link" href="/">
-        <img src="/logo.png" alt="Zyvra Logo">
-        <h1>Zyvra</h1>
-      </a>
-    </div>
-    <nav>
-      <ul>
+  <!-- Header -->
+  <header class="header glass">
+    <a class="brand-link" href="/">
+      <img src="/logo.png" alt="Zyvra Logo"/>
+      <h1>Zyvra</h1>
+    </a>
+
+    <button class="menu-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+
+    <nav id="siteNav" class="nav">
+      <ul class="nav-menu">
         <li><a href="#" data-cat="latest">Latest</a></li>
         <li><a href="#" data-cat="technology">Tech</a></li>
         <li><a href="#" data-cat="sports">Sports</a></li>
@@ -31,6 +33,7 @@
     </nav>
   </header>
 
+  <!-- Hero -->
   <section class="hero">
     <div class="hero-content">
       <h2 class="glow-text">Stay Updated with <span>Zyvra</span></h2>
@@ -39,16 +42,18 @@
   </section>
 
   <!-- Ticker -->
-  <div id="ticker" class="glass" style="display:none;white-space:nowrap;overflow:hidden;padding:8px 12px">
-    <a id="tickerLink" href="/" style="color:#0ff;text-decoration:none"></a>
+  <div id="ticker" class="ticker glass" style="display:none">
+    <a id="tickerLink" href="/"></a>
   </div>
 
+  <!-- News Grid -->
   <section class="news-grid" id="newsGrid"></section>
 
+  <!-- Footer -->
   <footer class="glass">
     <p>© 2025 Zyvra. Powered by You.</p>
   </footer>
 
-  <script src="/script.js?v=6"></script>
+  <script src="/script.js?v=7"></script>
 </body>
 </html>
