@@ -1,219 +1,129 @@
-// Open-Meteo free APIs: https://geocoding-api.open-meteo.com/, https://api.open-meteo.com/
-document.addEventListener('DOMContentLoaded', () => {
-  // Mobile menu reuse
-  const menuBtn = document.getElementById('menuBtn');
-  const mainNav = document.getElementById('mainNav');
-  if (menuBtn) {
-    menuBtn.addEventListener('click', () => {
-      const open = document.body.classList.toggle('nav-open');
-      menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+// Mobile menu (reuse)
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.querySelector('.menu-toggle');
+  const nav = document.getElementById('siteNav');
+  if (btn && nav) {
+    btn.addEventListener('click', ()=>{
+      const open = nav.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
-    mainNav.addEventListener('click', (e)=>{
-      const a = e.target.closest('a'); if(!a) return;
-      document.body.classList.remove('nav-open');
-      menuBtn.setAttribute('aria-expanded','false');
-    });
+    nav.querySelectorAll('a').forEach(a=> a.addEventListener('click', ()=> nav.classList.remove('open')));
   }
 
-  // Simple auth nav visibility
-  checkAuth();
-  async function checkAuth(){
-    const loginEl  = document.getElementById('navLogin');
-    const signupEl = document.getElementById('navSignup');
-    const adminEl  = document.getElementById('navAdmin');
-    const logoutLi = document.getElementById('navLogout');
-    const logoutLink = document.getElementById('logoutLink');
+  // Weather search
+  const q = document.getElementById('q');
+  const btnSearch = document.getElementById('btnSearch');
+  const results = document.getElementById('results');
+  const out = document.getElementById('weatherOut');
+
+  const onSearch = async () => {
+    const term = (q.value||'').trim();
+    if(!term){ q.focus(); return; }
+    results.style.display='block';
+    results.innerHTML = `<div style="padding:10px">Searching…</div>`;
     try{
-      const r = await fetch('/api/auth/me');
-      if(r.ok){
-        const j = await r.json();
-        loginEl&&(loginEl.style.display='none');
-        signupEl&&(signupEl.style.display='none');
-        logoutLi&&(logoutLi.style.display='');
-        adminEl&&(adminEl.style.display=(j.user?.role==='admin')?'':'none');
-      }else{
-        loginEl&&(loginEl.style.display='');
-        signupEl&&(signupEl.style.display='');
-        logoutLi&&(logoutLi.style.display='none');
-        adminEl&&(adminEl.style.display='none');
+      const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=10&language=en&format=json`);
+      const gj = await geo.json();
+      const list = Array.isArray(gj.results)? gj.results: [];
+      if(!list.length){
+        results.innerHTML = `<div style="padding:10px;color:#8aa">No cities found.</div>`;
+        return;
       }
-    }catch{
-      logoutLi&&(logoutLi.style.display='none');
-      adminEl&&(adminEl.style.display='none');
-    }
-    if(logoutLink){
-      logoutLink.onclick = async(e)=>{ e.preventDefault(); try{await fetch('/api/auth/logout',{method:'POST'})}catch{} location.reload(); };
-    }
-  }
-
-  // Elements
-  const input = document.getElementById('wxInput');
-  const btn   = document.getElementById('wxBtn');
-  const clr   = document.getElementById('wxClear');
-  const list  = document.getElementById('wxResults');
-  const curEl = document.getElementById('wxCurrent');
-  const dailyEl = document.getElementById('wxDaily');
-
-  let debounce;
-  function show(msg){ list.innerHTML = `<p class="wx-note">${msg}</p>`; }
-  function esc(s=''){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-  // Geocoding search
-  async function searchPlaces(q){
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=en&format=json`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('geo_failed');
-    return r.json();
-  }
-
-  // Forecast fetch
-  async function getForecast(lat, lon){
-    const params = new URLSearchParams({
-      latitude: lat, longitude: lon,
-      current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m',
-      hourly: 'temperature_2m,relative_humidity_2m,precipitation_probability',
-      daily: 'temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_sum,precipitation_probability_max,sunrise,sunset',
-      timezone: 'auto'
-    });
-    const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('wx_failed');
-    return r.json();
-  }
-
-  // UI handlers
-  async function runSearch(){
-    const q = input.value.trim();
-    if(!q){ list.innerHTML=''; return; }
-    show('Searching…');
-    try{
-      const j = await searchPlaces(q);
-      const results = Array.isArray(j?.results) ? j.results : [];
-      if(!results.length){ show('No places found'); return; }
-      list.innerHTML = results.map(rowHTML).join('');
-      // attach click
-      [...list.querySelectorAll('.wx-item')].forEach(a=>{
-        a.addEventListener('click', async (e)=>{
-          e.preventDefault();
-          const { lat, lon, name } = a.dataset;
-          await loadWeather(parseFloat(lat), parseFloat(lon), name);
-          window.scrollTo({ top: curEl.offsetTop - 60, behavior:'smooth' });
-        });
+      results.innerHTML = list.map(ci => rowHTML(ci)).join('');
+      results.querySelectorAll('button[data-lat]').forEach(b=>{
+        b.addEventListener('click', ()=> loadForecast({
+          name: b.getAttribute('data-name'),
+          country: b.getAttribute('data-country'),
+          lat: parseFloat(b.getAttribute('data-lat')),
+          lon: parseFloat(b.getAttribute('data-lon'))
+        }));
       });
-    }catch{
-      show('Search failed');
+    }catch(e){
+      results.innerHTML = `<div style="padding:10px;color:#f88">Search failed.</div>`;
     }
+  };
+  btnSearch.addEventListener('click', onSearch);
+  q.addEventListener('keydown', e=> { if(e.key==='Enter') onSearch(); });
+
+  function rowHTML(ci){
+    const name = esc(ci.name);
+    const sub = [ci.admin1, ci.country].filter(Boolean).join(', ');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div>
+        <div style="font-weight:700">${name}</div>
+        <div style="font-size:.9rem;color:#8aa">${esc(sub)}</div>
+      </div>
+      <button class="neon-btn" data-name="${escAttr(ci.name)}" data-country="${escAttr(ci.country||'')}" data-lat="${ci.latitude}" data-lon="${ci.longitude}">Select</button>
+    </div>`;
   }
 
-  function rowHTML(p){
-    const admin = p.admin1 ? `, ${p.admin1}` : '';
-    const name = `${p.name}${admin}, ${p.country}`;
-    return `<a href="#" class="wx-item">
-      <div class="wx-title">${esc(name)}</div>
-      <div class="wx-sub">${esc(p.latitude.toFixed(3))}, ${esc(p.longitude.toFixed(3))} · Elev ${esc(p.elevation)}m</div>
-      <span class="wx-go">View</span>
-    </a>
-    <span style="display:none"
-      data-name="${esc(name)}"
-      data-lat="${esc(p.latitude)}"
-      data-lon="${esc(p.longitude)}"></span>`.replace('<a','<a data-name="'+esc(name)+'" data-lat="'+p.latitude+'" data-lon="'+p.longitude+'"');
-  }
-
-  function wmo(code){
-    const c = Number(code);
-    if(c===0) return 'Clear sky';
-    if([1,2,3].includes(c)) return 'Cloudy';
-    if([45,48].includes(c)) return 'Fog';
-    if([51,53,55].includes(c)) return 'Drizzle';
-    if([61,63,65,80,81,82].includes(c)) return 'Rain';
-    if([66,67].includes(c)) return 'Freezing rain';
-    if([71,73,75,85,86,77].includes(c)) return 'Snow';
-    if(c===95) return 'Thunderstorm';
-    if([96,99].includes(c)) return 'Thunderstorm + hail';
-    return '—';
-  }
-  function degToDir(d){
-    const dir = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-    return dir[Math.round(((d%360)+360)%360 / 22.5) % 16];
-  }
-
-  async function loadWeather(lat, lon, placeName=''){
-    curEl.style.display='block';
-    curEl.innerHTML = `<p class="wx-note">Loading weather…</p>`;
-    dailyEl.innerHTML = '';
+  async function loadForecast(city){
+    results.style.display='none';
+    out.innerHTML = `<p style="color:#8aa">Loading forecast…</p>`;
     try{
-      const j = await getForecast(lat, lon);
-      // Current
-      const c = j.current || {};
-      const tz = j.timezone || 'local';
-      const nowStr = new Date(j.current?.time || Date.now()).toLocaleString();
-
-      curEl.innerHTML = `
-        <div class="wx-current-head">
-          <div>
-            <h2>${esc(placeName || `${lat.toFixed(2)}, ${lon.toFixed(2)}`)}</h2>
-            <div class="muted">${esc(tz)} · Updated ${esc(nowStr)}</div>
-          </div>
-          <div class="wx-current-temp">${Math.round(c.temperature_2m)}°C</div>
-        </div>
-        <div class="wx-current-grid">
-          <div class="wx-box"><div class="wx-k">Condition</div><div class="wx-v">${esc(wmo(c.weather_code))}</div></div>
-          <div class="wx-box"><div class="wx-k">Feels</div><div class="wx-v">${Math.round(c.apparent_temperature)}°C</div></div>
-          <div class="wx-box"><div class="wx-k">Humidity</div><div class="wx-v">${c.relative_humidity_2m}%</div></div>
-          <div class="wx-box"><div class="wx-k">Wind</div><div class="wx-v">${Math.round(c.wind_speed_10m)} km/h ${degToDir(c.wind_direction_10m||0)}</div></div>
-          <div class="wx-box"><div class="wx-k">Precip</div><div class="wx-v">${c.precipitation ?? 0} mm</div></div>
-          <div class="wx-box"><div class="wx-k">Day/Night</div><div class="wx-v">${c.is_day ? 'Day' : 'Night'}</div></div>
-        </div>
-      `;
-
-      // Daily
-      const d = j.daily || {};
-      const n = Math.min(d.time?.length || 0, 7);
-      if(n){
-        const cards = [];
-        for(let i=0;i<n;i++){
-          const t = new Date(d.time[i]);
-          const day = t.toLocaleDateString(undefined,{ weekday:'short' });
-          const max = Math.round(d.temperature_2m_max[i]);
-          const min = Math.round(d.temperature_2m_min[i]);
-          const pr  = d.precipitation_probability_max?.[i] ?? 0;
-          const uv  = d.uv_index_max?.[i] ?? 0;
-          const rise= d.sunrise?.[i] ? new Date(d.sunrise[i]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
-          const set = d.sunset?.[i]  ? new Date(d.sunset[i]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})  : '';
-          cards.push(`
-            <div class="wx-day glass">
-              <div class="wx-day-top">
-                <div class="wx-day-name">${esc(day)}</div>
-                <div class="wx-day-temp"><strong>${max}°</strong> / ${min}°</div>
-              </div>
-              <div class="wx-day-row"><span>Rain chance</span><span>${pr}%</span></div>
-              <div class="wx-day-row"><span>UV max</span><span>${uv}</span></div>
-              <div class="wx-day-row"><span>Sunrise</span><span>${rise}</span></div>
-              <div class="wx-day-row"><span>Sunset</span><span>${set}</span></div>
-            </div>
-          `);
-        }
-        dailyEl.innerHTML = cards.join('');
-      } else {
-        dailyEl.innerHTML = '';
-      }
-    }catch{
-      curEl.innerHTML = `<p class="wx-note err">Failed to load weather</p>`;
-      dailyEl.innerHTML = '';
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`;
+      const r = await fetch(url);
+      const wx = await r.json();
+      out.innerHTML = renderForecast(city, wx);
+    }catch(e){
+      out.innerHTML = `<p style="color:#f88">Failed to load forecast.</p>`;
     }
   }
 
-  // Events
-  if(input){
-    input.addEventListener('input', ()=>{
-      clr.style.display = input.value.trim() ? '' : 'none';
-      if(debounce) clearTimeout(debounce);
-      debounce = setTimeout(runSearch, 300);
-    });
-    input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); runSearch(); }});
-  }
-  btn && (btn.onclick = runSearch);
-  clr && (clr.onclick = ()=>{ input.value=''; clr.style.display='none'; list.innerHTML=''; input.focus(); });
+  function renderForecast(city, wx){
+    const cur = wx.current || {};
+    const daily = (wx.daily && wx.daily.time) ? wx.daily.time.map((t,i)=>({
+      date: t,
+      code: wx.daily.weather_code[i],
+      tmax: wx.daily.temperature_2m_max[i],
+      tmin: wx.daily.temperature_2m_min[i],
+      p: wx.daily.precipitation_probability_max[i]
+    })) : [];
 
-  // Prefill by IP-less geolocation? Keep manual for now.
+    const header = `
+      <div class="glass" style="padding:14px;border-radius:12px;margin-top:8px">
+        <div style="font-size:1.1rem;font-weight:700;color:#0ff">${esc(city.name)}, ${esc(city.country||'')}</div>
+        <div style="margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;color:#ddd">
+          <div>Now: <b>${n(cur.temperature_2m)}°C</b> (Feels ${n(cur.apparent_temperature)}°C)</div>
+          <div>Humidity: <b>${n(cur.relative_humidity_2m)}%</b></div>
+          <div>Wind: <b>${n(cur.wind_speed_10m)} km/h</b></div>
+          <div>${codeText(cur.weather_code)}</div>
+        </div>
+      </div>`;
+
+    const days = daily.map(d => `
+      <div class="news-card" style="text-align:left">
+        <div style="color:#8aa;font-size:.9rem">${fmtDate(d.date)}</div>
+        <div style="margin:6px 0;font-weight:700;color:#0ff">${codeText(d.code)}</div>
+        <div>Max: ${n(d.tmax)}°C &nbsp; Min: ${n(d.tmin)}°C</div>
+        <div>Rain chance: ${n(d.p)}%</div>
+      </div>
+    `).join('');
+
+    return `
+      ${header}
+      <div class="news-grid" style="margin-top:12px">${days || `<p style="color:#8aa">No daily data.</p>`}</div>
+    `;
+  }
+
+  function codeText(c){
+    const m = {
+      0:'Clear', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
+      45:'Fog', 48:'Rime fog',
+      51:'Drizzle', 53:'Drizzle', 55:'Drizzle',
+      61:'Rain', 63:'Rain', 65:'Heavy rain',
+      66:'Freezing rain', 67:'Freezing rain',
+      71:'Snow', 73:'Snow', 75:'Heavy snow',
+      80:'Rain showers', 81:'Rain showers', 82:'Heavy rain showers',
+      95:'Thunderstorm', 96:'Thunderstorm hail', 99:'Thunderstorm hail'
+    };
+    return m[c] || '—';
+  }
+  function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function escAttr(s){ return String(s||'').replace(/"/g,'&quot;'); }
+  function n(v){ return (v==null||isNaN(v)) ? '—' : Math.round(v); }
+  function fmtDate(s){
+    const d = new Date(s+'T00:00:00'); // safe
+    return d.toLocaleDateString(undefined,{ weekday:'short', month:'short', day:'numeric' });
+  }
 });
